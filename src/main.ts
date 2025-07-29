@@ -3,10 +3,13 @@ import { ChatHistory } from "./history/ChatHistory.js";
 import { InputManager } from "./InputManager.js";
 import * as dotenv from "dotenv";
 import { ROLES } from "./types.js";
+import { BaseBot, IBot } from "./BaseBot.js";
+import { BotWithMemory } from "./BotWithMemory.js";
+import { v4 } from "uuid";
 
 dotenv.config();
 
-const start = async (im: InputManager, ch: ChatHistory, bot: Bot) => {
+const start = async (im: InputManager, ch: ChatHistory, bot: IBot) => {
   while (true) {
     const input = await im.readInput();
     if (input.toLowerCase() === "quit") {
@@ -17,7 +20,13 @@ const start = async (im: InputManager, ch: ChatHistory, bot: Bot) => {
     console.log("****User input****");
     console.log(input);
 
-    const result = await bot.promptWithHistory(input);
+    let result = "";
+
+    if (bot.promptWithHistory) {
+      result = await bot.promptWithHistory(input);
+    } else {
+      result = await bot.prompt(input);
+    }
 
     console.log("****Agent response****");
     console.log(result);
@@ -27,7 +36,8 @@ const start = async (im: InputManager, ch: ChatHistory, bot: Bot) => {
 const main = async () => {
   const chatHistory = new ChatHistory();
   const im = new InputManager();
-  const bot = new Bot(chatHistory);
+  // const bot = new Bot(chatHistory);
+  const bot = new BotWithMemory(v4());
 
   await start(im, chatHistory, bot);
 };

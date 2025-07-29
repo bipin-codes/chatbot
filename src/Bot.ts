@@ -1,16 +1,11 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { ROLES } from "./types.js";
 import { ChatHistory } from "./history/ChatHistory.js";
+import { BaseBot } from "./BaseBot.js";
 
-export class Bot {
-  private llm: ChatOpenAI;
-
+export class Bot extends BaseBot {
   constructor(private chatHistory: ChatHistory) {
-    this.llm = new ChatOpenAI({
-      model: "gpt-4.1-mini",
-      temperature: 0,
-    });
-
+    super();
     this.chatHistory = chatHistory;
   }
 
@@ -20,11 +15,11 @@ export class Bot {
     const result = await this.llm.invoke(this.chatHistory.getHistory());
     this.chatHistory.add(result.content.toString(), ROLES.ASSISTANT);
 
-    return result.content;
+    return result.content.toString();
   }
 
   async prompt(msg: string) {
     const result = await this.llm.invoke(msg);
-    return result.content;
+    return result.content.toString();
   }
 }

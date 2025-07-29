@@ -7,18 +7,15 @@ import {
 } from "@langchain/langgraph";
 import { basicModel } from "./callmodels/basicModel.js";
 import { ChatOpenAI } from "@langchain/openai";
+import { BaseBot } from "./BaseBot.js";
 
-class BotWithMemory {
+export class BotWithMemory extends BaseBot {
   private config;
   private workflow;
   private app;
-  private llm;
 
   constructor(private id: string) {
-    this.llm = new ChatOpenAI({
-      model: "gpt-4.1-mini",
-      temperature: 0,
-    });
+    super();
 
     const memory = new MemorySaver();
     this.config = { configurable: { thread_id: this.id } };
@@ -38,7 +35,7 @@ class BotWithMemory {
       },
       this.config
     );
-
-    console.log(messages);
+    const len = messages.length;
+    return messages[len - 1].content.toString();
   }
 }
