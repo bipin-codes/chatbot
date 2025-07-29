@@ -1,51 +1,29 @@
 import { ChatOpenAI } from "@langchain/openai";
-import { IChatMessageType, ROLES } from "./types.js";
-
-class ChatHistory {
-  private messages: Array<IChatMessageType>;
-
-  constructor() {
-    this.messages = [];
-  }
-
-  add(msg: string, role: ROLES) {
-    this.messages.push({ role: role, content: msg });
-  }
-
-  getHistory() {
-    return this.messages;
-  }
-}
+import { ROLES } from "./types.js";
+import { ChatHistory } from "./history/ChatHistory.js";
 
 export class Bot {
   private llm: ChatOpenAI;
-  private chatHistory: ChatHistory;
 
-  constructor() {
+  constructor(private chatHistory: ChatHistory) {
     this.llm = new ChatOpenAI({
       model: "gpt-4.1-mini",
       temperature: 0,
     });
 
-    this.chatHistory = new ChatHistory();
+    this.chatHistory = chatHistory;
   }
 
-  async process(msg: string) {
-    this.chatHistory.add(msg, ROLES.USER);
+  async promptWithHistory(input: string) {
+    this.chatHistory.add(input, ROLES.USER);
 
-    const response = await this.promptWithHistory(
-      this.chatHistory.getHistory()
-    );
+    const result = await this.llm.invoke(this.chatHistory.getHistory());
+    this.chatHistory.add(result.content.toString(), ROLES.ASSISTANT);
 
-    this.chatHistory.add(msg, ROLES.ASSISTANT);
-    return response;
-  }
-
-  private async promptWithHistory(history: Array<any>) {
-    const result = await this.llm.invoke(history);
     return result.content;
   }
-  private async prompt(msg: string) {
+
+  async prompt(msg: string) {
     const result = await this.llm.invoke(msg);
     return result.content;
   }

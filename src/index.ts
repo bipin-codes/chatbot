@@ -3,9 +3,11 @@ import {
   HumanMessage,
   AIMessage,
   MessageContent,
+  trimMessages,
 } from "@langchain/core/messages";
 import * as dotenv from "dotenv";
 import {
+  Annotation,
   END,
   MemorySaver,
   MessagesAnnotation,
@@ -13,8 +15,49 @@ import {
   StateGraph,
 } from "@langchain/langgraph";
 import { v4 } from "uuid";
+import { ChatPromptTemplate } from "@langchain/core/prompts";
 
 dotenv.config();
+
+class ChatTrimmer {
+  static trimChatMessages() {
+    return trimMessages({
+      maxTokens: 1,
+      strategy: "last",
+      tokenCounter: (msgs) => msgs.length,
+      includeSystem: true,
+      allowPartial: false,
+      startOn: "human",
+    });
+  }
+}
+
+class PromptTemplateGenerator {
+  static getTemplatePirate() {
+    return ChatPromptTemplate.fromMessages([
+      [
+        "system",
+        "You talk like a pirate. Answer all questions to the best of your ability",
+      ],
+      ["placeholder", "{messages}"],
+    ]);
+  }
+  static getTemplateAssistant() {
+    return ChatPromptTemplate.fromMessages([
+      [
+        "system",
+        "You are a helpful assistant. Answer all questions to the best of your ability in {language}",
+      ],
+      ["placeholder", "{messages}"],
+    ]);
+  }
+}
+
+const GraphAnnotation = Annotation.Root({
+  ...MessagesAnnotation.spec,
+  language: Annotation<string>(),
+});
+
 class ChatBot {
   private history: (HumanMessage | AIMessage)[];
   private llm: ChatOpenAI;
@@ -33,10 +76,20 @@ class ChatBot {
     });
 
     // Defining a new Graph
-    this.workflow = new StateGraph(MessagesAnnotation)
-      .addNode("model", async (state: typeof MessagesAnnotation.State) => {
-        const response = await this.llm.invoke(state.messages);
-        return { messages: response };
+    // this.workflow = new StateGraph(MessagesAnnotation)
+    // ***** WITHOUT TEMPLATE ****
+    // .addNode("model", async (state: typeof MessagesAnnotation.State) => {
+    //   const response = await this.llm.invoke(state.messages);
+    //   return { messages: response };
+    // })
+
+    this.workflow = new StateGraph(GraphAnnotation)
+      .addNode("model", async (state: typeof GraphAnnotation.State) => {
+        await ChatTrimmer.trimChatMessages().invoke(state.messages); // For Trimming messages
+        const prompt =
+          await PromptTemplateGenerator.getTemplateAssistant().invoke(state);
+        const response = await this.llm.invoke(prompt);
+        return { messages: [response] };
       })
       .addEdge(START, "model")
       .addEdge("model", END);
@@ -66,6 +119,7 @@ class ChatBot {
     const output = await this.app.invoke(
       {
         messages: { role: "user", content: msg },
+        language: "English",
       },
       this.configurations[0]
     );
@@ -76,7 +130,7 @@ class ChatBot {
 }
 
 const bot = new ChatBot();
-const chat = ["Hi, I'm Bob!", "What's my name?"];
+const chat = ["Hi, I'm Bob!", "Good day!", "What's my name?"];
 // for (const msg of chat) {
 //   bot.add("user", msg);
 
