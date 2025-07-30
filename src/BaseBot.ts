@@ -1,7 +1,7 @@
 import { ChatOpenAI } from "@langchain/openai";
 
 export interface IBot {
-  prompt(input: string): Promise<string>;
+  prompt(input: string, language?: string): Promise<string>;
   promptWithHistory?(input: string): Promise<string>;
 }
 

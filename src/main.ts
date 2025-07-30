@@ -1,9 +1,7 @@
-import { Bot } from "./Bot.js";
 import { ChatHistory } from "./history/ChatHistory.js";
 import { InputManager } from "./InputManager.js";
 import * as dotenv from "dotenv";
-import { ROLES } from "./types.js";
-import { BaseBot, IBot } from "./BaseBot.js";
+import { IBot } from "./BaseBot.js";
 import { BotWithMemory } from "./BotWithMemory.js";
 import { v4 } from "uuid";
 
@@ -25,7 +23,7 @@ const start = async (im: InputManager, ch: ChatHistory, bot: IBot) => {
     if (bot.promptWithHistory) {
       result = await bot.promptWithHistory(input);
     } else {
-      result = await bot.prompt(input);
+      result = await bot.prompt(input, "spanish");
     }
 
     console.log("****Agent response****");

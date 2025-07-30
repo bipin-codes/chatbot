@@ -5,13 +5,10 @@ import {
   START,
   StateGraph,
 } from "@langchain/langgraph";
-import {
-  basicModel,
-  modelWithPromptTemplate,
-} from "./callmodels/basicModel.js";
-import { ChatOpenAI } from "@langchain/openai";
+import { basicModel, modelWithPromptTemplate } from "./callmodels/models.js";
 import { BaseBot } from "./BaseBot.js";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
+import { GraphAnnotation } from "./types.js";
 
 export class PromptTemplateGenerator {
   static piratePersonality() {
@@ -43,23 +40,25 @@ export class BotWithMemory extends BaseBot {
   constructor(private id: string) {
     super();
 
-    const memory = new MemorySaver();
     this.config = { configurable: { thread_id: this.id } };
 
-    this.workflow = new StateGraph(MessagesAnnotation)
-      // .addNode("model", basicModel(this.llm))
+    // this.workflow = new StateGraph(MessagesAnnotation)
+    // .addNode("model", basicModel(this.llm))
+    this.workflow = new StateGraph(GraphAnnotation)
       .addNode("model", modelWithPromptTemplate(this.llm))
       .addEdge(START, "model")
       .addEdge("model", END);
 
-    this.app = this.workflow.compile({ checkpointer: memory });
+    this.app = this.workflow.compile({ checkpointer: new MemorySaver() });
   }
 
-  async prompt(input: string) {
+  async prompt(input: string, language?: string) {
     const { messages } = await this.app.invoke(
       {
-        messages: { role: "user", content: input },
+        messages: [{ role: "user", content: input }],
+        language: language || "spanish", // Add language at the top level
       },
+
       this.config
     );
     const len = messages.length;

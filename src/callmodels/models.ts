@@ -10,9 +10,9 @@ export const basicModel =
 
 export const modelWithPromptTemplate =
   (llm: ChatOpenAI) => async (state: typeof MessagesAnnotation.State) => {
-    const prompt = await PromptTemplateGenerator.piratePersonality().invoke(
+    const prompt = await PromptTemplateGenerator.multilingualAssistant().invoke(
       state
     );
     const response = await llm.invoke(prompt);
-    return { messages: [response] };
+    return { messages: response };
   };
